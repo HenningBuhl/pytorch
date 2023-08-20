@@ -253,6 +253,7 @@ algorithms.
     lr_scheduler.CyclicLR
     lr_scheduler.OneCycleLR
     lr_scheduler.CosineAnnealingWarmRestarts
+    lr_scheduler.WarmUpInverseSquareRootLR
 
 Weight Averaging (SWA and EMA)
 ------------------------------

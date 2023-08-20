@@ -11,7 +11,8 @@ from .optimizer import Optimizer
 
 __all__ = ['LambdaLR', 'MultiplicativeLR', 'StepLR', 'MultiStepLR', 'ConstantLR', 'LinearLR',
            'ExponentialLR', 'SequentialLR', 'CosineAnnealingLR', 'ChainedScheduler', 'ReduceLROnPlateau',
-           'CyclicLR', 'CosineAnnealingWarmRestarts', 'OneCycleLR', 'PolynomialLR', 'LRScheduler']
+           'CyclicLR', 'CosineAnnealingWarmRestarts', 'OneCycleLR', 'PolynomialLR', 'LRScheduler',
+           'WarmUpInverseSquareRootLR']
 
 EPOCH_DEPRECATION_WARNING = (
     "The epoch parameter in `scheduler.step()` was not necessary and is being "
@@ -1324,7 +1325,6 @@ class CyclicLR(LRScheduler):
         self._init_scale_fn()
 
 
-
 class CosineAnnealingWarmRestarts(LRScheduler):
     r"""Set the learning rate of each parameter group using a cosine annealing
     schedule, where :math:`\eta_{max}` is set to the initial lr, :math:`T_{cur}`
@@ -1721,3 +1721,59 @@ class OneCycleLR(LRScheduler):
                     group['momentum'] = computed_momentum
 
         return lrs
+
+
+class WarmUpInverseSquareRootLR(LRScheduler):
+    """Ramps up the learning rate linearly for the number of warm_up_steps. After that, the
+    learning rate decreases with the inverse square root.
+
+    Args:
+        optimizer (Optimizer): Wrapped optimizer.
+        d_model (int): The internal dimension of the model.
+        warm_up_steps (int): The number of optimizer steps the
+            learning rate increases linteraly before if will
+            decay with the inverse square root.
+        factor (float): The number we multiply the learning rate
+            by. Default: -1.
+        last_epoch (int): The index of the last epoch. Default: -1.
+        verbose (bool): If ``True``, prints a message to stdout for
+            each update. Default: ``False``.
+
+    Example:
+        >>> # xdoctest: +SKIP
+        >>> scheduler = WarmUpInverseSquareRootLR(optimizer, 1024, factor=0.5)
+        >>> for epoch in range(100):
+        >>>     train(...)
+        >>>     validate(...)
+        >>>     scheduler.step()
+    """
+
+    def __init__(self, optimizer, d_model, warm_up_steps, factor=1, last_epoch=-1, verbose=False):
+        self.optimizer = optimizer
+        
+        self.d_model = d_model
+        self.warm_up_steps = warm_up_steps
+        self.factor = factor
+        super().__init__(optimizer, last_epoch, verbose)
+
+    def state_dict(self):
+        """Returns the state of the scheduler as a :class:`dict`.
+
+        It contains an entry for every variable in self.__dict__ which
+        is not the optimizer.
+        """
+        return {key: value for key, value in self.__dict__.items() if key != 'optimizer'}
+
+    def load_state_dict(self, state_dict):
+        """Loads the schedulers state.
+
+        Args:
+            state_dict (dict): scheduler state. Should be an object returned
+                from a call to :meth:`state_dict`.
+        """
+        self.__dict__.update(state_dict)
+
+    def get_lr(self):
+        for g in self.optimizer.param_groups:
+            g['lr'] = self.factor * self.d_model**(-0.5) * min(self._step_count **(-0.5), self._step_count * self.warm_up_steps**(-1.5))
+        return [group['lr'] for group in self.optimizer.param_groups]

@@ -24,6 +24,7 @@ from torch.optim.lr_scheduler import (
     CyclicLR,
     CosineAnnealingWarmRestarts,
     OneCycleLR,
+    WarmUpInverseSquareRootLR,
     ChainedScheduler,
     PolynomialLR,
     EPOCH_DEPRECATION_WARNING,
@@ -1699,6 +1700,8 @@ class TestLRScheduler(TestCase):
             self.opt, lr_lambda=[lambda x1: 0.9, lambda x2: 0.8]
         )
         self._test(scheduler, targets, epochs)
+
+    # TODO Tests for WarmUpInverseSquareRootLR
 
     @parametrize("T_mult", [1, 2, 4])
     def test_CosineAnnealingWarmRestarts_lr1(self, T_mult):
