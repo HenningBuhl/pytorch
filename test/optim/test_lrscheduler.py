@@ -24,7 +24,7 @@ from torch.optim.lr_scheduler import (
     CyclicLR,
     CosineAnnealingWarmRestarts,
     OneCycleLR,
-    WarmUpInverseSquareRootLR,
+    InverseSquareRootLR,
     ChainedScheduler,
     PolynomialLR,
     EPOCH_DEPRECATION_WARNING,
@@ -1675,6 +1675,39 @@ class TestLRScheduler(TestCase):
         self._test_cycle_lr(scheduler, lr_targets, momentum_targets, 10, use_beta1=True)
         self.opt = old_opt  # set optimizer back to SGD
 
+    def test_warm_up_inverse_square_lr(self):
+        epochs = 10
+        d_model = 100
+        warm_up_steps = 10
+        factor = 1.0
+        self.opt.param_groups[0]["lr"] = 0.05
+        self.opt.param_groups[1]["lr"] = 0.4
+        fn = lambda lr, step_count: lr * factor * d_model**(-0.5) * \
+            min(step_count **(-0.5), step_count * warm_up_steps**(-1.5))
+        targets = [
+            [fn(0.05, x) for x in range(epochs)],
+            [fn(0.4, x) for x in range(epochs)],
+        ]
+        scheduler = InverseSquareRootLR(self.opt, d_model, warm_up_steps, factor)
+        self._test(scheduler, targets, epochs)
+
+    def test_error_when_wuis_lr_init(self):
+        # Not in valid numerical range
+        with self.assertRaisesRegex(ValueError, "Expected positive integer d_model, but got "):
+            isr_scheduler = InverseSquareRootLR(self.opt, 0, 1, 1)
+        with self.assertRaisesRegex(ValueError, "Expected positive integer warm_up_steps, but got "):
+            isr_scheduler = InverseSquareRootLR(self.opt, 1, 0, 1)
+        with self.assertRaisesRegex(ValueError, "Expected positive float factor, but got "):
+            isr_scheduler = InverseSquareRootLR(self.opt, 1, 1, 0)
+            
+        # Not of correct type
+        with self.assertRaisesRegex(ValueError, "Expected positive integer d_model, but got "):
+            isr_scheduler = InverseSquareRootLR(self.opt, 1.1, 1, 1)
+        with self.assertRaisesRegex(ValueError, "Expected positive integer warm_up_steps, but got "):
+            isr_scheduler = InverseSquareRootLR(self.opt, 1, 1.1, 1)
+        with self.assertRaisesRegex(ValueError, "Expected positive float factor, but got "):
+            isr_scheduler = InverseSquareRootLR(self.opt, 1, 1, 'str')
+
     def test_lambda_lr(self):
         epochs = 10
         self.opt.param_groups[0]["lr"] = 0.05
@@ -1700,8 +1733,6 @@ class TestLRScheduler(TestCase):
             self.opt, lr_lambda=[lambda x1: 0.9, lambda x2: 0.8]
         )
         self._test(scheduler, targets, epochs)
-
-    # TODO Tests for WarmUpInverseSquareRootLR
 
     @parametrize("T_mult", [1, 2, 4])
     def test_CosineAnnealingWarmRestarts_lr1(self, T_mult):
@@ -1917,6 +1948,12 @@ class TestLRScheduler(TestCase):
             lambda: CosineAnnealingLR(self.opt, T_max=epochs, eta_min=eta_min),
             lambda: CosineAnnealingLR(self.opt, T_max=epochs // 2, eta_min=eta_min / 2),
             epochs=epochs,
+        )
+        
+    def test_wuis_lr_state_dict(self):
+        self._check_scheduler_state_dict(
+            lambda: InverseSquareRootLR(self.opt, 100, 10, 1),
+            lambda: InverseSquareRootLR(self.opt, 10, 1, 1.2),
         )
 
     def test_reduce_lr_on_plateau_state_dict(self):
