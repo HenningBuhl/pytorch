@@ -12,7 +12,7 @@ from .optimizer import Optimizer
 __all__ = ['LambdaLR', 'MultiplicativeLR', 'StepLR', 'MultiStepLR', 'ConstantLR', 'LinearLR',
            'ExponentialLR', 'SequentialLR', 'CosineAnnealingLR', 'ChainedScheduler', 'ReduceLROnPlateau',
            'CyclicLR', 'CosineAnnealingWarmRestarts', 'OneCycleLR', 'PolynomialLR', 'LRScheduler',
-           'WarmUpInverseSquareRootLR']
+           'InverseSquareRootLR']
 
 EPOCH_DEPRECATION_WARNING = (
     "The epoch parameter in `scheduler.step()` was not necessary and is being "
@@ -1723,7 +1723,7 @@ class OneCycleLR(LRScheduler):
         return lrs
 
 
-class WarmUpInverseSquareRootLR(LRScheduler):
+class InverseSquareRootLR(LRScheduler):
     """Ramps up the learning rate linearly for the number of warm_up_steps. After that, the
     learning rate decreases with the inverse square root.
 
@@ -1741,7 +1741,7 @@ class WarmUpInverseSquareRootLR(LRScheduler):
 
     Example:
         >>> # xdoctest: +SKIP
-        >>> scheduler = WarmUpInverseSquareRootLR(optimizer, 1024, factor=0.5)
+        >>> scheduler = InverseSquareRootLR(optimizer, 1024, factor=0.5)
         >>> for epoch in range(100):
         >>>     train(...)
         >>>     validate(...)
