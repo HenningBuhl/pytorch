@@ -1785,6 +1785,5 @@ class InverseSquareRootLR(LRScheduler):
         self.__dict__.update(state_dict)
 
     def get_lr(self):
-        for g in self.optimizer.param_groups:
-            g['lr'] = self.factor * self.d_model**(-0.5) * min(self._step_count **(-0.5), self._step_count * self.warm_up_steps**(-1.5))
-        return [group['lr'] for group in self.optimizer.param_groups]
+        return [group['lr'] * self.factor * self.d_model**(-0.5) * min(self._step_count **(-0.5), self._step_count *
+            self.warm_up_steps**(-1.5)) for group in self.optimizer.param_groups]
