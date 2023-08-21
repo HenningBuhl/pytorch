@@ -1751,8 +1751,19 @@ class InverseSquareRootLR(LRScheduler):
     def __init__(self, optimizer, d_model, warm_up_steps, factor=1, last_epoch=-1, verbose=False):
         self.optimizer = optimizer
         
+        # Validate d_model.
+        if d_model <= 0 or not isinstance(d_model, int):
+            raise ValueError(f"Expected positive integer total_steps, but got {d_model}")
         self.d_model = d_model
+        
+        # Validate warm_up_steps.
+        if warm_up_steps <= 0 or not isinstance(warm_up_steps, int):
+            raise ValueError(f"Expected positive integer total_steps, but got {warm_up_steps}")
         self.warm_up_steps = warm_up_steps
+        
+        # Validate factor.
+        if factor <= 0 or not isinstance(factor, float):
+            raise ValueError(f"Expected positive float total_steps, but got {factor}")
         self.factor = factor
         super().__init__(optimizer, last_epoch, verbose)
 
