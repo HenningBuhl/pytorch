@@ -1678,7 +1678,7 @@ class TestLRScheduler(TestCase):
     def test_warm_up_inverse_square_lr(self):
         epochs = 10
         d_model = 100
-        warm_up_steps = 10
+        warm_up_steps = 6
         factor = 1.0
         self.opt.param_groups[0]["lr"] = 0.05
         self.opt.param_groups[1]["lr"] = 0.4
