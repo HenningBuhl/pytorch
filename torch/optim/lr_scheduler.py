@@ -1762,7 +1762,7 @@ class InverseSquareRootLR(LRScheduler):
         self.warm_up_steps = warm_up_steps
         
         # Validate factor.
-        if factor <= 0 or not isinstance(factor, float):
+        if factor <= 0:
             raise ValueError(f"Expected positive float factor, but got {factor}")
         self.factor = factor
 
